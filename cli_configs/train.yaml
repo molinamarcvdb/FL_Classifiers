@@ -1,8 +1,8 @@
 defaults:
   - _self_
   - env: local
-  - model: resnet
-  - data: cifar10
+  - model: convnext
+  - data: mamography
 
 hydra:
   output_subdir: ${exp_dir}/${data.module.name}/checkpoints/${make_group_name:}
@@ -43,9 +43,10 @@ model:
   num_classes: ${data.num_classes}
   metrics: ${metrics}
   epochs: ${trainer.max_epochs}
-  name: ${model_name_extractor:${model._target_}}
+  name: #${model_name_extractor:${model._target_}}
   compile: False
-  pretrained: False
+  pretrained: True
+  type: 'large'
     
 data:
   module:
@@ -53,7 +54,7 @@ data:
     num_workers: 12
     prepare_data_per_node: False
     fold: null
-  num_classes: ???
+  num_classes: 2
   cv:
     k: 1  # 1=no Cross Validation
 
@@ -75,7 +76,7 @@ trainer:
       filename: '{epoch}-{val_loss:.2f}'
       auto_insert_metric_name: True
   devices: 1
-  accelerator: 'gpu'
+  accelerator: 'cpu'
   sync_batchnorm: False  # set to True if you use multiple GPUs
   enable_checkpointing: False
   max_epochs: 200

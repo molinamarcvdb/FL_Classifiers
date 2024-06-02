@@ -14,6 +14,7 @@ from parsing_utils import make_omegaconf_resolvers
 
 @hydra.main(version_base=None, config_path="./cli_configs", config_name="train")
 def main(cfg):
+    print(cfg.model)
     # seeding
     if cfg.seed:
         seed_everything(cfg.seed)
@@ -70,10 +71,12 @@ def main(cfg):
         # instantiate trainer, model and dataset
         trainer = instantiate(cfg.trainer)
         model = instantiate(cfg.model)
+        print(cfg.model)
+        print(model)
         if cfg.model.compile:
             model = torch.compile(model, mode="reduce-overhead")
         dataset = instantiate(cfg.data).module
-
+        
         # log hypperparams
         cfg_dict = OmegaConf.to_container(cfg, resolve=True)
         cfg_dict["model"].pop("_target_")
