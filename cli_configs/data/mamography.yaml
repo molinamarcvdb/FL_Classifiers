@@ -2,12 +2,11 @@
 data:
   module:
     _target_: datasets.mamography.CustomDataModule
-    name: Mammography
-    data_root_dir: /mnt/DV-MICROK/Syn.Dat/Marc/GitLab/datasets/512/classfier
-    batch_size: 2
+    name: Mammography2
+    data_root_dir: /mnt/DV-MICROK/Syn.Dat/Marc/GitLab/datasets/512/synth_real
+    batch_size: 8
     train_transforms: 
-      _target_: augmentation.policies.cifar.RandAugmentTransform
-      cutout_size: 8
+      _target_: augmentation.policies.cifar.BaselineTransform
     test_transforms: 
       _target_: augmentation.policies.cifar.TestTransform
 

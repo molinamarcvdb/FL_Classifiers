@@ -18,9 +18,9 @@ seed: False
 
 model:
   optimizer: SGD
-  sam: False  # set trainer.precision=32 if you use sam
+  sam: True  # set trainer.precision=32 if you use sam
   adaptive_sam: False  # set trainer.precision=32 if you use sam
-  lr: 0.1
+  lr: 0.001
   nesterov: False
   scheduler: CosineAnneal
   T_max: ${trainer.max_epochs}
@@ -29,8 +29,8 @@ model:
   mixup_alpha: 0.2
   weight_decay: 5e-4
   undecay_norm: False
-  label_smoothing: 0.0
-  stochastic_depth: False
+  label_smoothing: False
+  stochastic_depth: True
   resnet_dropout: 0.0
   squeeze_excitation: False
   apply_shakedrop: False
@@ -43,10 +43,10 @@ model:
   num_classes: ${data.num_classes}
   metrics: ${metrics}
   epochs: ${trainer.max_epochs}
-  name: #${model_name_extractor:${model._target_}}
+  name: ${model_name_extractor:${model._target_}}
   compile: False
-  pretrained: True
-  type: 'large'
+  pretrained: False #/mnt/DV-MICROK/Syn.Dat/Marc/GitLab/syntheva/pretrained/convnext_small-0c510722.pth 
+  type: base
     
 data:
   module:
@@ -54,13 +54,15 @@ data:
     num_workers: 12
     prepare_data_per_node: False
     fold: null
-  num_classes: 2
+  num_classes: 1
   cv:
     k: 1  # 1=no Cross Validation
 
 metrics:
   - 'acc'
   - 'f1'
+  - 'f1_per_class'
+  - 'pr'
 
 trainer:
   _target_: lightning.pytorch.Trainer
@@ -75,14 +77,14 @@ trainer:
       dirpath: ???
       filename: '{epoch}-{val_loss:.2f}'
       auto_insert_metric_name: True
-  devices: 1
-  accelerator: 'cpu'
+  devices: 2
+  accelerator: 'gpu'
   sync_batchnorm: False  # set to True if you use multiple GPUs
   enable_checkpointing: False
   max_epochs: 200
   benchmark: True
   deterministic: False
-  precision: '16-mixed'
+  precision: '32'
   enable_progress_bar: True
   strategy: 'ddp'
   logger: 
@@ -97,3 +99,8 @@ trainer:
   #limit_val_batches: 0.5
   #limit_test_batches: 0.25
   #accumulate_grad_batches: 2
+
+fl:
+  clients: 10
+  num_rounds: 3
+  strategy: avergae

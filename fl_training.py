@@ -26,27 +26,7 @@ def set_parameters(net, parameters: List[np.ndarray]):
     state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
     net.load_state_dict(state_dict, strict=True)
 
-class FlowerClient(fl.client.NumPyClient):
-    def __init__(self, cid, net, cfg):
-        self.cid = cid
-        self.net = net
-        self.cfg = cfg
 
-    def get_parameters(self, config):
-        print(f"[Client {self.cid}] get_parameters")
-        return get_parameters(self.net)
-
-    def fit(self, parameters, config):
-        print(f"[Client {self.cid}] fit, config: {config}")
-        set_parameters(self.net, parameters)
-        train(self.cfg, self.net, self.cid)
-        return get_parameters(self.net), len(self.trainloader), {}
-
-    def evaluate(self, parameters, config):
-        print(f"[Client {self.cid}] evaluate, config: {config}")
-        set_parameters(self.net, parameters)
-        loss, len_val, accuracy, f1 = test(self.cfg, self.net, self.cid)
-        return float(loss), len_val, {"accuracy": float(accuracy), "f1": float(f1)}
 
 
 
@@ -151,12 +131,41 @@ def test(cfg, model, cid):
 
     return loss, len(val_loader), accuracy, f1
 
+class FlowerClient(fl.client.NumPyClient):
+    def __init__(self, cid, net, cfg):
+        self.cid = cid
+        self.net = net
+        self.cfg = cfg
+
+    def get_parameters(self, config):
+        print(f"[Client {self.cid}] get_parameters")
+        return get_parameters(self.net)
+
+    def fit(self, parameters, config):
+        print(f"[Client {self.cid}] fit, config: {config}")
+        set_parameters(self.net, parameters)
+        train(self.cfg, self.net, self.cid)
+        return get_parameters(self.net), len(self.trainloader), {}
+
+    def evaluate(self, parameters, config):
+        print(f"[Client {self.cid}] evaluate, config: {config}")
+        set_parameters(self.net, parameters)
+        loss, len_val, accuracy, f1 = test(self.cfg, self.net, self.cid)
+        return float(loss), len_val, {"accuracy": float(accuracy), "f1": float(f1)}
+
+def get_strategy(strat_name):
+
+    strategy = fl.server.strategy.FedAvg(
+                    fraction_fit=1,  # Sample 50% of available clients for training each round
+                    fraction_evaluate=1,  # No federated evaluation
+                    # on_fit_config_fn=fit_config,
+                    # evaluate_fn=get_evaluate_fn(centralized_testset),  # Global evaluation function
+                )
+    return strategy
 
 class FL_Trainer():
-    def __init__(self, clients: int, **kwargs):
+    def __init__(self, **kwargs):
         super(FL_Trainer, self).__init__(**kwargs)
-
-        self.clients = clients
 
     def run_fl(self):
 
@@ -178,12 +187,13 @@ class FL_Trainer():
             client_resources = None
             if DEVICE.type == "cuda":
                 client_resources = {"num_gpus": 1}
-
+            
             fl.simulation.start_simulation(
                 client_fn=client_fn,
-                num_clients=self.clients,
-                config=fl.server.ServerConfig(num_rounds=3),
+                num_clients=cfg.fl.clients,
+                config=fl.server.ServerConfig(num_rounds=cfg.fl.num_rounds),
                 client_resources=client_resources,
+                strategy= get_strategy(cfg.fl.strategy)
             )
         
         main()
@@ -192,6 +202,6 @@ class FL_Trainer():
 if __name__ == "__main__":
     make_omegaconf_resolvers()
 
-    fler = FL_Trainer(clients=10)
+    fler = FL_Trainer()
     fler.run_fl()
     

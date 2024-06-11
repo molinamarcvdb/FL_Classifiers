@@ -7,7 +7,7 @@ from albumentations.pytorch import ToTensorV2
 from ..randaugment import CIFAR10Policy, Cutout, RandAugment
 from .base_transform import BaseTransform
 
-MEAN, STD = (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+MEAN, STD = (0.45, 0.45, 0.45), (0.25, 0.25, 0.25)
 
 
 class BaselineTransform(BaseTransform):
@@ -17,10 +17,10 @@ class BaselineTransform(BaseTransform):
     def __call__(self):
         transform_train = transforms.Compose(
             [
-                transforms.RandomCrop(32, padding=4),
+                # transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
-                transforms.Normalize(MEAN, STD),
+                # transforms.Normalize(MEAN, STD),
             ]
         )
 
@@ -79,12 +79,12 @@ class RandAugmentTransform(BaseTransform):
     def __call__(self):
         transform_train = transforms.Compose(
             [
-                transforms.RandomCrop(32, padding=4),
+                # transforms.RandomCrop(2048, padding=4),
                 transforms.RandomHorizontalFlip(),
                 RandAugment(),
-                Cutout(size=self.cutout_size),
+                # Cutout(size=self.cutout_size),
                 transforms.ToTensor(),
-                transforms.Normalize(MEAN, STD),
+                # transforms.Normalize(MEAN, STD),
                 # Random Erase with p=1 is an alternative to Cutout but worked slightly worse
                 # transforms.RandomErasing(p=1,
                 #                        scale=(0.125, 0.2), # range for how big the cutout should be compared to original img
@@ -205,7 +205,7 @@ class TestTransform(BaseTransform):
         transform_test = transforms.Compose(
             [
                 transforms.ToTensor(),
-                transforms.Normalize(MEAN, STD),
+                # transforms.Normalize(MEAN, STD),
             ]
         )
 

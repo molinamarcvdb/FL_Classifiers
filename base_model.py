@@ -1,9 +1,11 @@
 import math
 import warnings
-
+import os
 import lightning as L
 import torch
 import torch.nn as nn
+import cv2
+import numpy as np
 import wandb
 from madgrad import MADGRAD
 from timm.optim import RMSpropTF
@@ -172,7 +174,9 @@ class BaseModel(L.LightningModule):
 
         # Loss
         if self.task == "Classification":
-            self.criterion = nn.CrossEntropyLoss(label_smoothing=self.label_smoothing)
+            class_weights = torch.tensor([1, 1.0], dtype=torch.float32)
+            self.criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=self.label_smoothing)
+            # self.criterion = nn.BCELoss()
         elif self.task == "Regression":
             self.criterion = nn.MSELoss()
 
@@ -182,6 +186,18 @@ class BaseModel(L.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
 
+         # Create a directory to save images if it doesn't exist
+        # image_save_dir = 'saved_images'
+        # if not os.path.exists(image_save_dir):
+        #     os.makedirs(image_save_dir)
+
+        # # Save each image in the batch
+        # for i, img in enumerate(x):
+        #     img = img.cpu().numpy()  # Convert to numpy array if it's a tensor
+        #     img = (img * 255).astype(np.uint8)  # Convert to uint8 type (assumes img is normalized between 0 and 1)
+        #     img = np.transpose(img, (1, 2, 0))  # Convert from CHW to HWC format
+        #     cv2.imwrite(os.path.join(image_save_dir, f'batch_{batch_idx}_img_{i}.png'), img)
+
         if self.mixup:
             inputs, targets_a, targets_b, lam = mixup_data(x, y, alpha=self.mixup_alpha)
             y_hat = self(inputs)
@@ -190,7 +206,15 @@ class BaseModel(L.LightningModule):
             y_hat = self(x)
             if self.num_classes == 1:
                 y_hat = y_hat.view(-1)
-
+        # print(y_hat)
+        # y_hat = torch.sigmoid(y_hat)
+        # threshold = 0.5
+        # y_hat = (y_hat[:, 0] > threshold).int().long()
+        # print(y_hat)
+        # print(torch.argmax(y_hat))
+        # # print('Ground truth: ' + str(y))
+        # print()
+        # print('Prediction: ' + str(y_hat))
         if self.sam:
             opt = self.optimizers()
 
@@ -442,6 +466,11 @@ class BaseModel(L.LightningModule):
                             nn.init.constant_(m.bn4.weight, 0)
                         elif isinstance(m, BasicBlock_pyramid):
                             nn.init.constant_(m.bn3.weight, 0)
+        else:
+            
+            print(f"Loading pretrained weights from {self.pretrained}")
+            state_dict = torch.load(self.pretrained)
+            self.load_state_dict(state_dict)
 
     def configure_optimizers(self):
         # leave bias and params of batch norm undecayed as in https://arxiv.org/pdf/1812.01187.pdf (Bag of tricks)

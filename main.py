@@ -11,6 +11,7 @@ import torch
 
 from parsing_utils import make_omegaconf_resolvers
 
+torch.set_float32_matmul_precision('medium')
 
 @hydra.main(version_base=None, config_path="./cli_configs", config_name="train")
 def main(cfg):
@@ -70,6 +71,7 @@ def main(cfg):
 
         # instantiate trainer, model and dataset
         trainer = instantiate(cfg.trainer)
+        from models.convnext import ConvNext
         model = instantiate(cfg.model)
         print(cfg.model)
         print(model)
